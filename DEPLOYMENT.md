@@ -25,9 +25,9 @@ ADMIN_USERNAME = "akamine1732"
 ADMIN_PASSWORD = "SecurePass_2026_Go!"
 
 # --- Email Notifications (New) ---
-SMTP_HOST = "smtp.example.com"
-SMTP_PORT = 587
-SMTP_USER = "your_email@example.com"
-SMTP_PASSWORD = "your_password"
-NOTIFICATION_EMAIL = "admin_notify@example.com"
+SMTP_HOST = "smtp.muumuu-mail.com"
+SMTP_PORT = 465
+SMTP_USER = "contract-service@colt.co.jp"
+SMTP_PASSWORD = "contract1732"
+NOTIFICATION_EMAIL = "contract-service@colt.co.jp"
 ```

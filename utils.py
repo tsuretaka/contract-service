@@ -58,8 +58,14 @@ def send_email_notification(to_email, subject, body, attachment_path=None):
             print(f"❌ Failed to attach file: {e}")
 
     try:
-        server = smtplib.SMTP(smtp_host, int(smtp_port))
-        server.starttls()
+        if int(smtp_port) == 465:
+            # SSL Connection (MuuMuu Mail etc.)
+            server = smtplib.SMTP_SSL(smtp_host, int(smtp_port))
+        else:
+            # TLS Connection (Gmail etc.)
+            server = smtplib.SMTP(smtp_host, int(smtp_port))
+            server.starttls()
+            
         server.login(smtp_user, smtp_password)
         server.send_message(msg)
         server.quit()
