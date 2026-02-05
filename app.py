@@ -38,8 +38,13 @@ def show_login_view():
         submitted = st.form_submit_button("ログイン", type="primary")
         
         if submitted:
-            # Hardcoded credential for MVP
-            if username == "admin" and password == "admin":
+            # Secure Login via Env/Secrets
+            from utils import get_env_or_secret
+            
+            valid_user = get_env_or_secret("ADMIN_USERNAME", "admin") # Fallback to admin/admin ONLY if not set (development convenience)
+            valid_pass = get_env_or_secret("ADMIN_PASSWORD", "admin")
+            
+            if username == valid_user and password == valid_pass:
                 login()
                 st.rerun()
             else:
