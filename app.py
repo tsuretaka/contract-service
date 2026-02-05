@@ -19,12 +19,23 @@ def logout():
 # --- Views ---
 
 def show_login_view():
-    st.title("🔐 管理者ログイン")
+    st.markdown("""
+    # 📑 Minimal E-Contract Service
+    ### 安全・迅速な電子契約プラットフォーム
+    
+    契約書の作成、送信、署名、そして監査ログによる証拠保全まで。  
+    すべてをワンストップで管理するミニマルな電子契約サービスです。
+    """)
+    
+    st.divider()
+    
+    st.subheader("🔐 管理者ログイン")
+    st.caption("※ここは管理者専用のポータルです。署名依頼を受け取った方は、メール内のリンクから直接アクセスしてください。")
     
     with st.form("login_form"):
         username = st.text_input("ユーザー名")
         password = st.text_input("パスワード", type="password")
-        submitted = st.form_submit_button("ログイン")
+        submitted = st.form_submit_button("ログイン", type="primary")
         
         if submitted:
             # Hardcoded credential for MVP
@@ -32,7 +43,7 @@ def show_login_view():
                 login()
                 st.rerun()
             else:
-                st.error("ユーザー名またはパスワードが間違っています")
+                st.error("❌ ユーザー名またはパスワードが間違っています")
 
 def show_admin_dashboard():
     st.sidebar.title("メニュー")
