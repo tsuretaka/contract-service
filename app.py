@@ -73,7 +73,7 @@ def show_admin_dashboard():
             db.close()
             st.sidebar.success("Database: Connected")
         except Exception as e:
-            st.sidebar.error(f"Database: API Error")
+            st.sidebar.error(f"Database: API Error - {e}")
         
         # Check Storage
         from utils import supabase
