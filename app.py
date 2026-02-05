@@ -395,8 +395,20 @@ def show_signing_view(token):
     local_pdf_path = download_file_to_temp(contract.pdf_path)
     
     with open(local_pdf_path, "rb") as f:
-        base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="600" type="application/pdf"></iframe>'
+        pdf_bytes = f.read()
+        base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+    
+    # Download Button (Fail-safe)
+    st.download_button(
+        label="📄 契約書PDFをダウンロード",
+        data=pdf_bytes,
+        file_name=f"{contract.title}.pdf",
+        mime='application/pdf'
+    )
+
+    # PDF Display (Try <object> or <embed> for better compatibility, but iframe is standard)
+    # Using object tag sometimes works better in Streamlit cloud
+    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="800" type="application/pdf"></iframe>'
     st.markdown(pdf_display, unsafe_allow_html=True)
     
     st.divider()
