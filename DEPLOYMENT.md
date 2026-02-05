@@ -1,39 +1,33 @@
-# Deploying to Streamlit Community Cloud
+# Streamlit Community Cloud デプロイガイド
 
-This guide explains how to deploy the Minimal e-Contract Service.
+## Secrets設定 (TOML形式)
 
-## ⚠️ Important Note specifically for Cloud Hosting
+以下の内容をコピーして、Streamlit Cloudの「Secrets」欄に貼り付けてください。
+※ `BASE_URL` は、デプロイ後に発行される実際のアプリのURL（例: `https://contract-service.streamlit.app`）に書き換えることを強く推奨します。
 
-Streamlit Community Cloud (and many other PaaS like Render/Heroku) has an **Ephemeral File System**.
-This means any files saved to the disk (uploaded PDFs, SQLite database, Signed Certificates) will be **deleted** when the app restarts or goes to sleep.
+```toml
+[general]
 
-**For a production-ready deployment, you MUST use external storage:**
-1.  **Database**: Migrate from SQLite (`app.db`) to PostgreSQL (e.g., Supabase, Neon).
-2.  **File Storage**: Migrate from local file system (`contracts/`) to Object Storage (e.g., AWS S3, Google Cloud Storage, Supabase Storage).
+# --- Database ---
+DATABASE_URL = "postgresql://postgres.mhslyqrqlfbmdmbwwfri:qaqjym-pyXdif-9befne@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres"
 
----
+# --- Supabase Storage ---
+SUPABASE_URL = "https://mhslyqrqlfbmdmbwwfri.supabase.co"
+SUPABASE_KEY = "sb_publishable_wlPNQLFkj4zkXaV9wee26Q_tSAPxRG4"
+SUPABASE_BUCKET = "contracts"
 
-## Instructions for Quick Demo Deployment (Data will reset)
+# --- App Config ---
+# デプロイ後に実際のURL「https://xxxx.streamlit.app」に書き換えてください
+BASE_URL = "https://contract-service.streamlit.app"
 
-If you only want to demonstrate the app and don't mind data resetting:
+# --- Admin Authenticator ---
+ADMIN_USERNAME = "akamine1732"
+ADMIN_PASSWORD = "SecurePass_2026_Go!"
 
-1.  **Push to GitHub**
-    *   Create a new repository on GitHub.
-    *   Push this code to the repository.
-    *   Ensure `.gitignore` is working (secrets and local DBs should not be pushed).
-
-2.  **Deploy on Streamlit Community Cloud**
-    *   Go to [share.streamlit.io](https://share.streamlit.io/).
-    *   Connect your GitHub account.
-    *   Select the repository and branch.
-    *   Main file path: `app.py`
-    *   Click **Deploy**.
-
-3.  **Packages**
-    *   The system will automatically detect `requirements.txt` (Python libs) and `packages.txt` (System libs like fonts).
-
-## Future Steps for Persistence
-
-To make this app persistent, we need to:
-1.  Connect to **Supabase** (PostgreSQL) for `app.db` replacement.
-2.  Use **Supabase Storage** or **S3** for PDF storage.
+# --- Email Notifications (New) ---
+SMTP_HOST = "smtp.example.com"
+SMTP_PORT = 587
+SMTP_USER = "your_email@example.com"
+SMTP_PASSWORD = "your_password"
+NOTIFICATION_EMAIL = "admin_notify@example.com"
+```

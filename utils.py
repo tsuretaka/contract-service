@@ -5,6 +5,12 @@ from datetime import datetime
 from supabase import create_client
 from dotenv import load_dotenv
 
+# Email
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+
 # Load env variables explicitly
 load_dotenv()
 
@@ -22,6 +28,46 @@ def get_env_or_secret(key, default=None):
         except:
             pass
     return val if val else default
+
+def send_email_notification(to_email, subject, body, attachment_path=None):
+    """Send email via SMTP with optional attachment."""
+    smtp_host = get_env_or_secret("SMTP_HOST")
+    smtp_port = get_env_or_secret("SMTP_PORT", 587)
+    smtp_user = get_env_or_secret("SMTP_USER")
+    smtp_password = get_env_or_secret("SMTP_PASSWORD")
+
+    if not all([smtp_host, smtp_user, smtp_password]):
+        print("⚠️ SMTP credentials missing. Email skipped.")
+        return False
+
+    msg = MIMEMultipart()
+    msg['From'] = smtp_user
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    if attachment_path:
+        try:
+            with open(attachment_path, "rb") as f:
+                # Use standard pdf name if possible
+                filename = os.path.basename(attachment_path)
+                part = MIMEApplication(f.read(), Name=filename)
+            part['Content-Disposition'] = f'attachment; filename="{filename}"'
+            msg.attach(part)
+        except Exception as e:
+            print(f"❌ Failed to attach file: {e}")
+
+    try:
+        server = smtplib.SMTP(smtp_host, int(smtp_port))
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.send_message(msg)
+        server.quit()
+        print(f"✅ Email sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send email: {e}")
+        return False
 
 # Supabase Auth
 SUPABASE_URL = get_env_or_secret("SUPABASE_URL")

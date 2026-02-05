@@ -372,20 +372,46 @@ def execute_signature(session_id, ip_address, user_agent, typed_name):
         # Save Anchor locally (JSONL)
         anchor_path = append_anchor_jsonl(chain_data)
         
-        # Simulate Email to Admin (Strong Evidence)
-        email_content = f"""
-        [System Notification: Contract Signed]
-        Contract: {contract.title}
-        PDF SHA256: {contract.pdf_sha256}
-        Signer: {typed_name} (Verified)
+        # --- EMAIL NOTIFICATIONS (Real SMTP) ---
+        from utils import send_email_notification, get_env_or_secret
+        import json # Ensure json is available for debug log if needed
         
-        *** SECURITY ANCHOR ***
-        This anchor data is appended to strict audit log at: {anchor_path}
-        
-        {json.dumps(chain_data, indent=2, ensure_ascii=False)}
-        """
-        
-        return True, email_content
+        # 1. Notify Signer (with PDF Attachment)
+        signer_subject = f"【締結完了】{contract.title} のご案内"
+        signer_body = f"""
+{session.party.name} 様
+
+電子契約サービス「ContractService」をご利用いただきありがとうございます。
+{contract.title} の電子署名が完了しました。
+
+締結済みの契約書ファイルを添付いたしましたので、大切に保管してください。
+
+--------------------------------------------------
+契約ID: {contract.id}
+署名日時: {contract.signed_at}
+--------------------------------------------------
+"""
+        # Send to signer
+        send_email_notification(session.party.email, signer_subject, signer_body, attachment_path=merged_path)
+
+        # 2. Notify Admin
+        admin_email = get_env_or_secret("NOTIFICATION_EMAIL", get_env_or_secret("SMTP_USER")) # Fallback to user
+        if admin_email:
+            admin_subject = f"【署名完了】{contract.title}"
+            admin_body = f"""
+管理者 様
+
+以下の契約書への署名が完了しました。
+
+契約件名: {contract.title}
+署名者: {session.party.name} ({session.party.email})
+日時: {contract.signed_at}
+
+管理画面から確認してください。
+"""
+            send_email_notification(admin_email, admin_subject, admin_body)
+
+        return True, f"署名完了\nメール送信: {session.party.email}"
         
     except Exception as e:
         # Cleanup
