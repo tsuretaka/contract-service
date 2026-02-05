@@ -430,8 +430,23 @@ def show_signing_view(token):
     if st.button("署名して完了する", type="primary", disabled=not is_valid):
         # Create Signature
         try:
-            # Pass typed_name to service
-            success, result_message = services.execute_signature(session.id, "127.0.0.1", "Browser-User-Agent", typed_name)
+            # Capture Client Info (Best Effort)
+            client_ip = "Unknown IP"
+            user_agent = "Unknown User-Agent"
+            
+            try:
+                from streamlit.web.server.websocket_headers import _get_websocket_headers
+                headers = _get_websocket_headers()
+                if headers:
+                    client_ip = headers.get("X-Forwarded-For", headers.get("Remote-Addr", "Unknown IP"))
+                    user_agent = headers.get("User-Agent", "Streamlit Cloud Browser")
+            except Exception as e:
+                print(f"Header capture failed: {e}")
+                client_ip = "Streamlit Cloud"
+                user_agent = "Web Browser"
+
+            # Pass capture info to service
+            success, result_message = services.execute_signature(session.id, client_ip, user_agent, typed_name)
             
             if success:
                 st.success("✅ 署名が完了しました！ありがとうございました。")
