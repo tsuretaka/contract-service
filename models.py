@@ -22,6 +22,19 @@ os.makedirs(DB_DIR, exist_ok=True)
 # Check for DATABASE_URL (PostgreSQL) or fallback to SQLite
 _env_db_url = os.environ.get("DATABASE_URL")
 
+# Try obtaining from Streamlit secrets if not in env
+if not _env_db_url:
+    try:
+        import streamlit as st
+        # secrets might differ in structure, checking root or general section
+        if hasattr(st, "secrets"):
+            if "DATABASE_URL" in st.secrets:
+                _env_db_url = st.secrets["DATABASE_URL"]
+            elif "general" in st.secrets and "DATABASE_URL" in st.secrets["general"]:
+                _env_db_url = st.secrets["general"]["DATABASE_URL"]
+    except Exception:
+        pass
+
 if _env_db_url:
     # Use the same Postgres DB for both App and Audit for simplicity in migration
     # Ensure it starts with postgresql:// instead of postgres:// (SQLAlchemy compat)

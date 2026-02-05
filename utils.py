@@ -8,10 +8,25 @@ from dotenv import load_dotenv
 # Load env variables explicitly
 load_dotenv()
 
+# Helper to get env or secret
+def get_env_or_secret(key, default=None):
+    val = os.environ.get(key)
+    if not val:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets"):
+                if key in st.secrets:
+                    val = st.secrets[key]
+                elif "general" in st.secrets and key in st.secrets["general"]:
+                    val = st.secrets["general"][key]
+        except:
+            pass
+    return val if val else default
+
 # Supabase Auth
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET", "contracts")
+SUPABASE_URL = get_env_or_secret("SUPABASE_URL")
+SUPABASE_KEY = get_env_or_secret("SUPABASE_KEY")
+SUPABASE_BUCKET = get_env_or_secret("SUPABASE_BUCKET", "contracts")
 
 supabase = None
 if SUPABASE_URL and SUPABASE_KEY:
@@ -173,11 +188,7 @@ def get_base_url():
     Prioritizes BASE_URL environment variable (for Cloud/Prod/Custom Ports).
     Fallback to localhost:8501.
     """
-    env_url = os.environ.get("BASE_URL")
-    if env_url:
-        return env_url
-        
-    return "http://localhost:8501"
+    return get_env_or_secret("BASE_URL", "http://localhost:8501")
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
