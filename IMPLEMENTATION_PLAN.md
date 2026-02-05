@@ -26,43 +26,52 @@ contract_service/
 ## 3. Development Phases
 
 ### Phase 1: Foundation & Database
-- [ ] Initialize Project & Git
-- [ ] Install dependencies (`streamlit`, `sqlalchemy`, `pypdf`, `reportlab`, `bcrypt`)
-- [ ] Define Database Models (`Contract`, `Party`, `SigningSession`, `AuditEvent`) as per Specification
-- [ ] Setup Database initialization script
+- [x] Initialize Project & Git
+- [x] Install dependencies (`streamlit`, `sqlalchemy`, `pypdf`, `reportlab`, `bcrypt`)
+- [x] Define Database Models (`Contract`, `Party`, `SigningSession`, `AuditEvent`) as per Specification
+- [x] Setup Database initialization script
 
 ### Phase 2: Admin Dashboard (Contract Creation)
-- [ ] Implement Admin Login (Simple ID/PW check)
-- [ ] Create "Contract List" view (Draft, Sent, Signed, Void)
-- [ ] Create "New Contract" form:
+- [x] Implement Admin Login (Simple ID/PW check)
+- [x] Create "Contract List" view (Draft, Sent, Signed, Void)
+- [x] Create "New Contract" form:
     - Upload PDF
     - Enter Title
     - Register Signer Info (Name, Email)
     - Save to DB & File System
 
 ### Phase 3: Signing Workflow Engine
-- [ ] Implement "Send Contract" logic:
+- [x] Implement "Send Contract" logic:
     - Generate secure Token
     - Simulate Email Sending (Display "Email Content" in Admin view for MVP)
     - Update Status to 'Sent'
-- [ ] Implement Signer View (Routing via `?token=...`):
+- [x] Implement Signer View (Routing via `?token=...`):
     - Validate Token
     - Display Contract PDF (Embedded)
     - Checkbox & "Sign" button
 
 ### Phase 4: Signature Execution & Security
-- [ ] Implement Signing Logic:
+- [x] Implement Signing Logic:
     - Verify integrity (PDF Hash)
     - Record Audit Event (IP, User-Agent)
     - Update Status to 'Signed'
     - Invalidate Token
-- [ ] Generate "Completion Certificate" PDF (using `reportlab`)
+- [x] Generate "Completion Certificate" PDF (using `reportlab`)
+- [x] Merge Certificate with Original PDF
 
 ### Phase 5: Finalize & Download
-- [ ] Admin: View Signed Contracts & Download (PDF + Certificate)
-- [ ] Signer: Download immediately after signing
-- [ ] Audit Log Viewer for Admin
+- [x] Admin: View Signed Contracts & Download (PDF + Certificate)
+- [x] Signer: Download immediately after signing
+- [x] Audit Log Viewer for Admin
 
 ## 4. Immediate Next Steps
-1. Create `requirements.txt`
-2. Create `models.py` and initialize the database.
+All Phase 1-5 tasks are completed.
+Potential next steps:
+1.  **Deployment**: Prepare for cloud deployment (e.g., Streamlit Community Cloud, Render).
+2.  **Email Integration**: Replace simulated email with SendGrid or Gmail SMTP.
+3.  **UI Polish**: Improve styling and user feedback.
+
+## 5. Persistence Migration (Supabase)
+- [ ] Configure `DATABASE_URL` to point to Supabase PostgreSQL in `models.py`.
+- [ ] Replace local file storage with Supabase Storage Bucket logic in `utils.py`.
+- [ ] Update `services.py` to use Storage Bucket for PDF URIs.

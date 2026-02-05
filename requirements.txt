@@ -1,0 +1,11 @@
+streamlit>=1.33.0
+sqlalchemy
+pypdf
+reportlab
+bcrypt
+pandas
+openpyxl
+phonenumbers
+supabase
+psycopg2-binary
+python-dotenv

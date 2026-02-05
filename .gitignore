@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+
+# Mac
+.DS_Store
+
+# Environment & Secrets
+.env
+.streamlit/secrets.toml
+venv/
+
+# Data (Excluded from git primarily, but note that Cloud hosting resets these)
+database/*.db
+contracts/uploads/*
+contracts/signed/*
+contracts/void/*
+anchors/*
+
+# Keep directories structure
+!database/.gitkeep
+!contracts/uploads/.gitkeep
+!contracts/signed/.gitkeep
+!anchors/.gitkeep
