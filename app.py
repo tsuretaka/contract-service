@@ -127,7 +127,7 @@ def show_audit_logs():
             st.markdown(f"#### Event ID: `{e.id}`")
             col1, col2 = st.columns(2)
             with col1:
-                st.write("**Timestamp:**", e.occurred_at)
+                st.write("**Timestamp:**", convert_to_jst(e.occurred_at))
                 st.write("**Actor:**", e.actor_type, e.actor_reference)
                 st.write("**Event:**", e.event_type)
             with col2:
@@ -144,6 +144,19 @@ def show_audit_logs():
             if e.metadata_json:
                 st.markdown("#### 📄 Metadata")
                 st.json(e.metadata_json)
+
+# Helper for Timezone
+from datetime import datetime
+import pytz
+
+def convert_to_jst(dt):
+    """Convert UTC datetime to JST."""
+    if dt is None:
+        return None
+    # Ensure dt is aware. If naive, assume UTC.
+    if dt.tzinfo is None:
+        dt = pytz.utc.localize(dt)
+    return dt.astimezone(pytz.timezone('Asia/Tokyo'))
 
 def get_status_badge(status):
     """Return status badge configuration."""
@@ -178,8 +191,8 @@ def show_contract_list():
             "Title": c.title,
             "Status": get_status_badge(c.status),
             "Signer": signer_name,
-            "Created": c.created_at,
-            "Signed": c.signed_at
+            "Created": convert_to_jst(c.created_at),
+            "Signed": convert_to_jst(c.signed_at)
         })
     
     df = pd.DataFrame(data)
@@ -233,8 +246,9 @@ def show_contract_list():
                 if "supabase://" in detail.pdf_path:
                      disp_name = detail.pdf_path.split("/")[-1] # Simple extraction
                 
+                created_jst = convert_to_jst(detail.created_at)
                 st.write(f"**PDF:** `{disp_name}`")
-                st.write(f"**作成日時:** {detail.created_at.strftime('%Y/%m/%d %H:%M')}")
+                st.write(f"**作成日時:** {created_jst.strftime('%Y/%m/%d %H:%M')}")
             
             with col_body2:
                 st.markdown("#### 👥 関係者")
