@@ -9,3 +9,4 @@ phonenumbers
 supabase
 psycopg2-binary
 python-dotenv
+streamlit-pdf-viewer

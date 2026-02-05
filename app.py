@@ -406,10 +406,11 @@ def show_signing_view(token):
         mime='application/pdf'
     )
 
-    # PDF Display (Try <object> or <embed> for better compatibility, but iframe is standard)
-    # Using object tag sometimes works better in Streamlit cloud
-    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="800" type="application/pdf"></iframe>'
-    st.markdown(pdf_display, unsafe_allow_html=True)
+    # PDF Display using streamlit-pdf-viewer (Better cross-browser support including Safari)
+    from streamlit_pdf_viewer import pdf_viewer
+    
+    # annotations (optional) could be added here later
+    pdf_viewer(input=pdf_bytes, width=700)
     
     st.divider()
     
