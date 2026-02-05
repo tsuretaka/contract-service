@@ -51,13 +51,36 @@ def show_login_view():
                 st.error("❌ ユーザー名またはパスワードが間違っています")
 
 def show_admin_dashboard():
-    st.sidebar.title("メニュー")
-    menu = st.sidebar.radio("Go to", ["契約一覧", "新規契約作成", "監査ログ"])
-    
-    st.sidebar.divider()
-    if st.sidebar.button("ログアウト"):
-        logout()
-        st.rerun()
+    # --- Sidebar Menu ---
+    with st.sidebar:
+        st.header(f"管理画面 ({st.session_state.get('username', 'Admin')})")
+        menu = st.radio("メニュー", ["契約一覧", "新規契約作成", "監査ログ"])
+        
+        st.divider()
+        if st.button("ログアウト"):
+            logout()
+            st.rerun()
+
+        # --- System Status (Debug) ---
+        st.divider()
+        st.caption("System Status")
+        
+        # Check DB
+        from models import SessionLocal
+        try:
+            db = SessionLocal()
+            db.execute("SELECT 1")
+            db.close()
+            st.sidebar.success("Database: Connected")
+        except Exception as e:
+            st.sidebar.error(f"Database: API Error")
+        
+        # Check Storage
+        from utils import supabase
+        if supabase:
+            st.sidebar.success("Storage: Configured")
+        else:
+            st.sidebar.error("Storage: Not Configured (Key Missing)")
 
     if menu == "契約一覧":
         show_contract_list()
