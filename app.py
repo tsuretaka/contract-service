@@ -67,9 +67,10 @@ def show_admin_dashboard():
         
         # Check DB
         from models import SessionLocal
+        from sqlalchemy import text
         try:
             db = SessionLocal()
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
             db.close()
             st.sidebar.success("Database: Connected")
         except Exception as e:
