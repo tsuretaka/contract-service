@@ -317,9 +317,14 @@ def show_contract_list():
 
                 # Check/Create merged file
                 # Only if we have both original and cert locally
-                if not os.path.exists(merged_path) and local_original_path and os.path.exists(local_original_path) and os.path.exists(cert_path):
-                     from utils import merge_pdf_with_certificate
-                     merge_pdf_with_certificate(local_original_path, cert_path, merged_path)
+                if not os.path.exists(merged_path) and local_original_path and os.path.exists(local_original_path):
+                     try:
+                         services.recreate_signed_contract_if_missing(detail.id, local_original_path)
+                         # Update paths after recreation
+                         merged_path = services.get_signed_contract_path(detail.id)
+                         cert_path = services.get_certificate_path(detail.id)
+                     except Exception as e:
+                         st.error(f"Failed to recreate PDF: {e}")
 
                 with col_dl1:
                     if os.path.exists(merged_path):
@@ -505,15 +510,26 @@ def show_signing_view(token):
     # If signed
     if contract.status == 'signed':
         st.success("この契約書は署名済みです。")
+        
+        signed_path = services.get_signed_contract_path(contract.id)
+        if not os.path.exists(signed_path) and local_pdf_path and os.path.exists(local_pdf_path):
+             try:
+                 services.recreate_signed_contract_if_missing(contract.id, local_pdf_path)
+                 signed_path = services.get_signed_contract_path(contract.id)
+             except Exception as e:
+                 print(f"Failed to recreate PDF in signer view: {e}")
+                 
         col1, col2 = st.columns(2)
         with col1:
-             with open(contract.pdf_path, "rb") as f:
-                st.download_button(
-                    label="📄 契約書PDFをダウンロード",
-                    data=f,
-                    file_name=os.path.basename(contract.pdf_path),
-                    mime="application/pdf"
-                )
+             download_path = signed_path if os.path.exists(signed_path) else local_pdf_path
+             if os.path.exists(download_path):
+                 with open(download_path, "rb") as f:
+                    st.download_button(
+                        label="📄 契約書PDF (署名済) をダウンロード",
+                        data=f,
+                        file_name=f"signed_{os.path.basename(contract.pdf_path).split('/')[-1]}",
+                        mime="application/pdf"
+                    )
         with col2:
             cert_path = services.get_certificate_path(contract.id)
             if os.path.exists(cert_path):

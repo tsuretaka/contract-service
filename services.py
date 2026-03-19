@@ -302,7 +302,7 @@ def execute_signature(session_id, ip_address, user_agent, typed_name):
         stamped_temp_filename = f"tmp_{contract.id}_stamped.pdf"
         stamped_temp_path = os.path.join(CERT_DIR, stamped_temp_filename)
         
-        stamp_text = f"Contract ID: {contract.id} | Signed: {str(contract.signed_at)}"
+        stamp_text = f"【電子署名済】 契約ID: {contract.id} | SHA256: {contract.pdf_sha256} | 署名日時: {contract.signed_at.strftime('%Y-%m-%d %H:%M:%S')}"
         # Use local_original_pdf here
         stamp_all_pages(local_original_pdf, stamped_temp_path, stamp_text)
         
@@ -328,9 +328,9 @@ def execute_signature(session_id, ip_address, user_agent, typed_name):
         if SUPABASE_BUCKET:
             try:
                 # Upload Certificate
-                upload_local_file_to_storage(cert_path, remote_folder="signed")
+                upload_local_file_to_storage(cert_path, remote_folder="signed", use_hash_name=False)
                 # Upload Signed Merged PDF
-                upload_local_file_to_storage(merged_path, remote_folder="signed")
+                upload_local_file_to_storage(merged_path, remote_folder="signed", use_hash_name=False)
             except Exception as e:
                 print(f"Post-signature upload failed: {e}")
                 # Don't fail the transaction just because upload failed, 
@@ -431,8 +431,75 @@ def execute_signature(session_id, ip_address, user_agent, typed_name):
 
 def get_certificate_path(contract_id):
     """Return path to the certificate file."""
-    return os.path.join(CERT_DIR, f"{contract_id}_cert.pdf")
+    local_path = os.path.join(CERT_DIR, f"{contract_id}_cert.pdf")
+    from utils import SUPABASE_BUCKET, download_file_to_temp
+    if not os.path.exists(local_path) and SUPABASE_BUCKET:
+        try:
+             return download_file_to_temp(f"supabase://{SUPABASE_BUCKET}/signed/{contract_id}_cert.pdf")
+        except:
+             pass
+    return local_path
 
 def get_signed_contract_path(contract_id):
     """Return path to the merged signed contract file."""
-    return os.path.join(CERT_DIR, f"{contract_id}_signed.pdf")
+    local_path = os.path.join(CERT_DIR, f"{contract_id}_signed.pdf")
+    from utils import SUPABASE_BUCKET, download_file_to_temp
+    if not os.path.exists(local_path) and SUPABASE_BUCKET:
+        try:
+             return download_file_to_temp(f"supabase://{SUPABASE_BUCKET}/signed/{contract_id}_signed.pdf")
+        except:
+             pass
+    return local_path
+
+def recreate_signed_contract_if_missing(contract_id, local_original_pdf):
+    """
+    Fallback method: if a contract was signed under an older version, the merged PDF
+    might be missing (due to hash-based naming). This function recreates the certificate
+    and the stamped signed PDF on the fly based on DB records.
+    """
+    db = SessionLocal()
+    db_audit = SessionAudit()
+    try:
+        contract = db.query(Contract).filter(Contract.id == contract_id).first()
+        if not contract or contract.status != 'signed':
+            return False
+            
+        signer = next((p for p in contract.parties if p.role == 'signer'), None)
+        if not signer:
+            return False
+            
+        audit = db_audit.query(AuditEvent).filter(
+            AuditEvent.contract_id == contract_id, 
+            AuditEvent.event_type == 'signed'
+        ).order_by(AuditEvent.occurred_at.desc()).first()
+        
+        if not audit:
+            return False
+            
+        typed_name = signer.name # Fallback
+        if audit.metadata_json and isinstance(audit.metadata_json, dict):
+             typed_name = audit.metadata_json.get('typed_name_verification', typed_name)
+             
+        # Paths
+        cert_path = os.path.join(CERT_DIR, f"{contract.id}_cert.pdf")
+        stamped_temp_path = os.path.join(CERT_DIR, f"tmp_{contract.id}_stamped.pdf")
+        merged_path = os.path.join(CERT_DIR, f"{contract.id}_signed.pdf")
+        
+        # 1. Generate cert
+        if not os.path.exists(cert_path):
+             generate_certificate(cert_path, contract, signer, audit, typed_name)
+             
+        # 2. Stamp and merge
+        if not os.path.exists(merged_path) and local_original_pdf and os.path.exists(local_original_pdf):
+             stamp_text = f"【電子署名済】 契約ID: {contract.id} | SHA256: {contract.pdf_sha256} | 署名日時: {contract.signed_at.strftime('%Y-%m-%d %H:%M:%S')}"
+             stamp_all_pages(local_original_pdf, stamped_temp_path, stamp_text)
+             merge_pdf_with_certificate(stamped_temp_path, cert_path, merged_path)
+             
+             if os.path.exists(stamped_temp_path):
+                  os.remove(stamped_temp_path)
+        
+        # We don't upload again, just use local temp caching
+        return True
+    finally:
+        db.close()
+        db_audit.close()

@@ -151,7 +151,7 @@ def save_uploaded_file(uploaded_file, dest_dir="contracts/uploads"):
         
         return file_path, file_hash
 
-def upload_local_file_to_storage(local_path, remote_folder="signed"):
+def upload_local_file_to_storage(local_path, remote_folder="signed", use_hash_name=False):
     """
     Upload a local file to Supabase Storage.
     Returns the supabase:// path if successful, otherwise raises or returns local path?
@@ -164,16 +164,16 @@ def upload_local_file_to_storage(local_path, remote_folder="signed"):
         raise FileNotFoundError(f"File not found: {local_path}")
         
     filename = os.path.basename(local_path)
-    # Maybe add hash to filename to ensure uniqueness? 
-    # For signed files, they usually have IDs in name, keeping it simple for now or using hash.
-    
-    # Calculate hash for consistency/dedup
-    file_hash = calculate_file_hash(local_path)
     ext = os.path.splitext(filename)[1]
     if not ext: ext = ".pdf"
     
+    if use_hash_name:
+        file_hash = calculate_file_hash(local_path)
+        remote_filename = f"{file_hash}{ext}"
+    else:
+        remote_filename = filename
+    
     # Remote Path
-    remote_filename = f"{file_hash}{ext}"
     remote_path = f"{remote_folder}/{remote_filename}"
     
     print(f"DEBUG: Uploading local file {local_path} to {remote_path}...")
@@ -415,11 +415,17 @@ def create_stamp_pdf(text, width, height):
     c = canvas.Canvas(packet, pagesize=(width, height))
     
     # Stamp Style
-    c.setFillColorRGB(0.5, 0.5, 0.5, 0.5) # Grey, semi-transparent
-    c.setFont("Helvetica", 8)
+    c.setFillColorRGB(0.5, 0.5, 0.5, 0.8) # Grey, almost opaque
+    try:
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+        pdfmetrics.registerFont(UnicodeCIDFont('HeiseiKakuGo-W5'))
+        c.setFont("HeiseiKakuGo-W5", 7)
+    except:
+        c.setFont("Helvetica", 7)
     
     # Draw text at the bottom center/left
-    # Format: Contract ID | Signed on ...
+    # Format: Contract ID | Hash | Signed on ...
     c.drawString(10*mm, 5*mm, text)
     
     c.save()
