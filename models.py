@@ -53,7 +53,7 @@ def generate_uuid():
     return str(uuid.uuid4())
 
 class Contract(Base):
-    __tablename__ = 'contracts'
+    __tablename__ = 'cs_contracts'
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
     title = Column(Text, nullable=False)
@@ -72,10 +72,10 @@ class Contract(Base):
     audit_events = relationship("AuditEvent", back_populates="contract", cascade="all, delete-orphan")
 
 class Party(Base):
-    __tablename__ = 'parties'
+    __tablename__ = 'cs_parties'
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
-    contract_id = Column(String(36), ForeignKey('contracts.id'), nullable=False)
+    contract_id = Column(String(36), ForeignKey('cs_contracts.id'), nullable=False)
     role = Column(String(20), nullable=False) # company, signer
     name = Column(Text, nullable=False)
     email = Column(Text, nullable=True)
@@ -84,11 +84,11 @@ class Party(Base):
     contract = relationship("Contract", back_populates="parties")
 
 class SigningSession(Base):
-    __tablename__ = 'signing_sessions'
+    __tablename__ = 'cs_signing_sessions'
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
-    contract_id = Column(String(36), ForeignKey('contracts.id'), nullable=False)
-    signer_party_id = Column(String(36), ForeignKey('parties.id'), nullable=False)
+    contract_id = Column(String(36), ForeignKey('cs_contracts.id'), nullable=False)
+    signer_party_id = Column(String(36), ForeignKey('cs_parties.id'), nullable=False)
     token_hash = Column(String(64), nullable=False) # SHA-256 of the token from URL
     expires_at = Column(DateTime, nullable=False)
     used_at = Column(DateTime, nullable=True)
@@ -98,10 +98,10 @@ class SigningSession(Base):
     party = relationship("Party")
 
 class AuditEvent(Base):
-    __tablename__ = 'audit_events'
+    __tablename__ = 'cs_audit_events'
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
-    contract_id = Column(String(36), ForeignKey('contracts.id'), nullable=True)
+    contract_id = Column(String(36), ForeignKey('cs_contracts.id'), nullable=True)
     actor_type = Column(String(20), nullable=False) # admin, signer, system
     actor_reference = Column(Text, nullable=True) # Admin ID or Signer Email/Name
     event_type = Column(Text, nullable=False) # created, sent, viewed, signed, voided
