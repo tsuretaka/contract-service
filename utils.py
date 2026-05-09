@@ -215,8 +215,9 @@ def download_file_to_temp(path_uri):
         local_path = os.path.join("tmp_downloads", local_filename)
         os.makedirs("tmp_downloads", exist_ok=True)
         
-        if os.path.exists(local_path):
-             return local_path # Cache hit? For now simple return
+        # Check if valid file exists (size > 100 bytes to avoid error JSON cache)
+        if os.path.exists(local_path) and os.path.getsize(local_path) > 100:
+             return local_path # Cache hit
 
         # Download
         with open(local_path, 'wb+') as f:
