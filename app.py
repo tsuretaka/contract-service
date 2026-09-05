@@ -449,20 +449,59 @@ def show_signing_view(token):
         mime='application/pdf'
     )
 
-    # PDF Display using PyMuPDF (100% Japanese font and cross-browser rendering)
+    # PDF Display using PyMuPDF (100% Japanese font, optimal centering, and pagination)
     try:
         import fitz
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            # 150 DPI で文字を極めて鮮明に画像化（日本語フォント完全描画）
-            pix = page.get_pixmap(dpi=150)
-            img_bytes = pix.tobytes("png")
+        total_pages = len(doc)
+
+        if total_pages > 1:
+            page_key = f"pdf_page_{contract.id}"
+            if page_key not in st.session_state:
+                st.session_state[page_key] = 0
+
+            # インデックス境界チェック
+            if st.session_state[page_key] >= total_pages:
+                st.session_state[page_key] = total_pages - 1
+            if st.session_state[page_key] < 0:
+                st.session_state[page_key] = 0
+
+            cur_idx = st.session_state[page_key]
+
+            # ページ送りコントロール UI
+            col_ctrl_l, col_ctrl_mid, col_ctrl_r = st.columns([0.15, 0.7, 0.15])
+            with col_ctrl_mid:
+                c_prev, c_ind, c_next = st.columns([1, 2, 1])
+                with c_prev:
+                    if st.button("◀ 前のページ", key=f"prev_btn_{contract.id}", disabled=(cur_idx <= 0), use_container_width=True):
+                        st.session_state[page_key] -= 1
+                        st.rerun()
+                with c_ind:
+                    st.markdown(
+                        f"<div style='text-align: center; padding: 6px 0; font-size: 14px; font-weight: 600; color: #374151;'>ページ {cur_idx + 1} / {total_pages}</div>",
+                        unsafe_allow_html=True
+                    )
+                with c_next:
+                    if st.button("次のページ ▶", key=f"next_btn_{contract.id}", disabled=(cur_idx >= total_pages - 1), use_container_width=True):
+                        st.session_state[page_key] += 1
+                        st.rerun()
+
+            current_page = doc[cur_idx]
+        else:
+            current_page = doc[0]
+
+        # 150 DPI で文字を極めて鮮明に画像化
+        pix = current_page.get_pixmap(dpi=150)
+        img_bytes = pix.tobytes("png")
+
+        # 画面中央に適正サイズ（横幅約70%・中央寄せ）で配置
+        col_l, col_center, col_r = st.columns([0.15, 0.7, 0.15])
+        with col_center:
             st.image(
                 img_bytes,
-                caption=f"ページ {page_num + 1} / {len(doc)}" if len(doc) > 1 else None,
                 use_container_width=True
             )
+
     except Exception as e:
         st.warning(f"PDFプレビューの画像生成でエラーが発生しました: {e}")
         from streamlit_pdf_viewer import pdf_viewer
