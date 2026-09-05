@@ -439,17 +439,28 @@ def create_stamp_pdf(text, width, height):
     
     # Stamp Style
     c.setFillColorRGB(0.5, 0.5, 0.5, 0.8) # Grey, almost opaque
+    font_name = "Helvetica"
     try:
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.cidfonts import UnicodeCIDFont
         pdfmetrics.registerFont(UnicodeCIDFont('HeiseiKakuGo-W5'))
-        c.setFont("HeiseiKakuGo-W5", 7)
+        font_name = "HeiseiKakuGo-W5"
     except:
-        c.setFont("Helvetica", 7)
+        pass
     
-    # Draw text at the bottom center/left
-    # Format: Contract ID | Hash | Signed on ...
-    c.drawString(10*mm, 5*mm, text)
+    # Auto-adjust font size to fit within margins
+    margin = 8 * mm
+    usable_width = width - (2 * margin)
+    font_size = 6.0
+    try:
+        text_width = pdfmetrics.stringWidth(text, font_name, font_size)
+        if text_width > usable_width and text_width > 0:
+            font_size = font_size * (usable_width / text_width)
+    except:
+        font_size = 5.0
+    
+    c.setFont(font_name, font_size)
+    c.drawString(margin, 4 * mm, text)
     
     c.save()
     packet.seek(0)
