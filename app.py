@@ -249,6 +249,9 @@ def show_contract_list():
                 created_jst = convert_to_jst(detail.created_at)
                 st.write(f"**PDF:** `{disp_name}`")
                 st.write(f"**作成日時:** {created_jst.strftime('%Y/%m/%d %H:%M')}")
+                if detail.signed_at:
+                    signed_jst = convert_to_jst(detail.signed_at)
+                    st.write(f"**署名日時:** {signed_jst.strftime('%Y/%m/%d %H:%M')} (JST)")
             
             with col_body2:
                 st.markdown("#### 👥 関係者")

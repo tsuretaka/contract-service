@@ -1,3 +1,4 @@
+from utils import format_jst_datetime
 from utils import generate_secure_token, get_base_url, generate_certificate, compute_audit_hash, save_uploaded_file, normalize_name_nfkc, append_anchor_jsonl, merge_pdf_with_certificate, stamp_all_pages
 from datetime import timedelta, datetime
 from models import SessionLocal, SessionAudit, Contract, Party, AuditEvent, SigningSession
@@ -256,8 +257,8 @@ def execute_signature(session_id, ip_address, user_agent, typed_name):
         
         # 1. Update DB State (App DB)
         contract.status = 'signed'
-        contract.signed_at = datetime.now()
-        session.used_at = datetime.now()
+        contract.signed_at = datetime.utcnow()
+        session.used_at = datetime.utcnow()
         db.commit() 
         
         # 2. Record Audit (Audit DB)
@@ -302,7 +303,7 @@ def execute_signature(session_id, ip_address, user_agent, typed_name):
         stamped_temp_filename = f"tmp_{contract.id}_stamped.pdf"
         stamped_temp_path = os.path.join(CERT_DIR, stamped_temp_filename)
         
-        stamp_text = f"【電子署名済】 契約ID: {contract.id} | SHA256: {contract.pdf_sha256} | 署名日時: {contract.signed_at.strftime('%Y-%m-%d %H:%M:%S')}"
+        stamp_text = f"【電子署名済】 契約ID: {contract.id} | SHA256: {contract.pdf_sha256} | 署名日時: {format_jst_datetime(contract.signed_at)} JST"
         # Use local_original_pdf here
         stamp_all_pages(local_original_pdf, stamped_temp_path, stamp_text)
         
@@ -388,7 +389,7 @@ def execute_signature(session_id, ip_address, user_agent, typed_name):
 
 --------------------------------------------------
 契約ID: {contract.id}
-署名日時: {contract.signed_at}
+署名日時: {format_jst_datetime(contract.signed_at)} (JST)
 --------------------------------------------------
 """
         # Send to signer
@@ -405,7 +406,7 @@ def execute_signature(session_id, ip_address, user_agent, typed_name):
 
 契約件名: {contract.title}
 署名者: {session.party.name} ({session.party.email})
-日時: {contract.signed_at}
+日時: {format_jst_datetime(contract.signed_at)} (JST)
 
 管理画面から確認してください。
 """
@@ -491,7 +492,7 @@ def recreate_signed_contract_if_missing(contract_id, local_original_pdf):
              
         # 2. Stamp and merge
         if not os.path.exists(merged_path) and local_original_pdf and os.path.exists(local_original_pdf):
-             stamp_text = f"【電子署名済】 契約ID: {contract.id} | SHA256: {contract.pdf_sha256} | 署名日時: {contract.signed_at.strftime('%Y-%m-%d %H:%M:%S')}"
+             stamp_text = f"【電子署名済】 契約ID: {contract.id} | SHA256: {contract.pdf_sha256} | 署名日時: {format_jst_datetime(contract.signed_at)} JST"
              stamp_all_pages(local_original_pdf, stamped_temp_path, stamp_text)
              merge_pdf_with_certificate(stamped_temp_path, cert_path, merged_path)
              

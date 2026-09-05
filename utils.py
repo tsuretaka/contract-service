@@ -1,3 +1,25 @@
+import pytz
+from datetime import datetime
+
+JST = pytz.timezone("Asia/Tokyo")
+
+def to_jst(dt: datetime) -> datetime:
+    """Convert any UTC (or naive UTC) datetime to JST."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = pytz.utc.localize(dt)
+    return dt.astimezone(JST)
+
+def format_jst_datetime(dt, fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
+    """Convert UTC datetime to JST and format as string."""
+    if dt is None:
+        return "N/A"
+    if isinstance(dt, str):
+        return dt
+    jst_dt = to_jst(dt)
+    return jst_dt.strftime(fmt)
+
 import hashlib
 import os
 import shutil
@@ -280,7 +302,7 @@ def generate_certificate(save_path, contract, signer, audit_event, typed_name=No
         ("Signer Name / 署名者名", signer.name),
         ("Signer Email / メール", signer.email),
         ("Input Name / 入力氏名", typed_name if typed_name else "N/A"), # Added field
-        ("Signed Date / 署名日時", str(contract.signed_at)),
+        ("Signed Date / 署名日時", f"{format_jst_datetime(contract.signed_at)} JST"),
         ("IP Address", audit_event.ip_address),
         ("User Agent", audit_event.user_agent[:60] + "..." if audit_event.user_agent else "N/A"),
     ]
