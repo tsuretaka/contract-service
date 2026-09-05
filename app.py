@@ -317,40 +317,54 @@ def show_contract_list():
                 merged_path = services.get_signed_contract_path(detail.id)
                 cert_path = services.get_certificate_path(detail.id)
 
+                col_refresh1, col_refresh2 = st.columns([3, 1])
+                with col_refresh2:
+                    if st.button("🔄 JST版PDFを再生成", key=f"btn_recreate_{detail.id}", help="甲・乙の双方情報と最新のJSTスタンプでPDFおよび証明書を再生成してStorageを更新します"):
+                        if local_original_path and os.path.exists(local_original_path):
+                            with st.spinner("JST版PDFを再生成中..."):
+                                services.recreate_signed_contract_if_missing(detail.id, local_original_path, force=True)
+                                st.toast("✅ JST版PDF・合意締結証明書を再生成しました！")
+                                st.rerun()
+
                 col_dl1, col_dl2 = st.columns(2)
                 with col_dl1:
                     if os.path.exists(merged_path):
                         with open(merged_path, "rb") as f:
-                            st.download_button(
-                                "📥 契約書+証明書 (統合版・JST)",
-                                f,
-                                file_name=f"signed_{os.path.basename(detail.pdf_path)}",
-                                mime="application/pdf",
-                                key=f"dl_merged_{detail.id}",
-                                use_container_width=True
-                            )
+                            merged_bytes = f.read()
+                        mtime_merged = int(os.path.getmtime(merged_path))
+                        st.download_button(
+                            "📥 契約書+証明書 (統合版・JST)",
+                            data=merged_bytes,
+                            file_name=f"signed_{os.path.basename(detail.pdf_path)}",
+                            mime="application/pdf",
+                            key=f"dl_merged_{detail.id}_{mtime_merged}",
+                            use_container_width=True
+                        )
                     elif local_original_path and os.path.exists(local_original_path):
                          with open(local_original_path, "rb") as f:
-                            st.download_button(
-                                "📄 契約書PDF (未結合)",
-                                f,
-                                file_name=os.path.basename(local_original_path),
-                                mime="application/pdf",
-                                key=f"dl_pdf_fallback_{detail.id}",
-                                use_container_width=True
-                            )
+                            orig_bytes = f.read()
+                         st.download_button(
+                            "📄 契約書PDF (未結合)",
+                            data=orig_bytes,
+                            file_name=os.path.basename(local_original_path),
+                            mime="application/pdf",
+                            key=f"dl_pdf_fallback_{detail.id}",
+                            use_container_width=True
+                         )
                 
                 with col_dl2:
                     if os.path.exists(cert_path):
                         with open(cert_path, "rb") as f:
-                            st.download_button(
-                                "🎖️ 署名証明書のみ (JST)",
-                                f,
-                                file_name=f"certificate_{detail.id}.pdf",
-                                mime="application/pdf",
-                                key=f"dl_cert_{detail.id}",
-                                use_container_width=True
-                            )
+                            cert_bytes = f.read()
+                        mtime_cert = int(os.path.getmtime(cert_path))
+                        st.download_button(
+                            "🎖️ 署名証明書のみ (JST)",
+                            data=cert_bytes,
+                            file_name=f"certificate_{detail.id}.pdf",
+                            mime="application/pdf",
+                            key=f"dl_cert_{detail.id}_{mtime_cert}",
+                            use_container_width=True
+                        )
             
             elif detail.status == 'void':
                 st.error("⛔️ この契約書は破棄されています。")
@@ -566,22 +580,28 @@ def show_signing_view(token):
              download_path = signed_path if os.path.exists(signed_path) else local_pdf_path
              if os.path.exists(download_path):
                  with open(download_path, "rb") as f:
-                    st.download_button(
-                        label="📄 契約書PDF (署名済・JST) をダウンロード",
-                        data=f,
-                        file_name=f"signed_{os.path.basename(contract.pdf_path).split('/')[-1]}",
-                        mime="application/pdf"
-                    )
+                     dl_bytes = f.read()
+                 mtime_dl = int(os.path.getmtime(download_path))
+                 st.download_button(
+                     label="📄 契約書PDF (署名済・JST) をダウンロード",
+                     data=dl_bytes,
+                     file_name=f"signed_{os.path.basename(contract.pdf_path).split('/')[-1]}",
+                     mime="application/pdf",
+                     key=f"dl_signer_signed_{contract.id}_{mtime_dl}"
+                 )
         with col2:
             cert_path = services.get_certificate_path(contract.id)
             if os.path.exists(cert_path):
                 with open(cert_path, "rb") as f:
-                    st.download_button(
-                        label="🎖️ 署名完了証明書 (JST) をダウンロード",
-                        data=f,
-                        file_name=f"certificate.pdf",
-                        mime="application/pdf"
-                    )
+                    dl_cert_bytes = f.read()
+                mtime_cert_signer = int(os.path.getmtime(cert_path))
+                st.download_button(
+                    label="🎖️ 署名完了証明書 (JST) をダウンロード",
+                    data=dl_cert_bytes,
+                    file_name=f"certificate_{contract.id}.pdf",
+                    mime="application/pdf",
+                    key=f"dl_signer_cert_{contract.id}_{mtime_cert_signer}"
+                )
 
 if __name__ == "__main__":
     main()
