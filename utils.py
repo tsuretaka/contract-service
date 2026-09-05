@@ -377,15 +377,16 @@ def generate_certificate(save_path, contract, signer, audit_event, typed_name=No
     y = draw_kv("署名環境 / User Agent:", ua, y)
     y -= 3*mm
 
-    # Footer
+    # Footer (2-line layout to prevent text overlap)
     c.setStrokeColorRGB(0.7, 0.75, 0.8)
     c.setLineWidth(0.5)
     c.line(20*mm, y + 2*mm, width - 20*mm, y + 2*mm)
     
     c.setFont(font_name, 7.5)
     c.setFillColorRGB(0.4, 0.45, 0.5)
-    c.drawString(20*mm, 18*mm, "本証明書は、電子契約システム「Minimal e-Contract Service」において記録された監査ログおよびハッシュチェーンに基づき自動発行されたものです。")
-    c.drawRightString(width - 20*mm, 18*mm, f"発行日時: {format_jst_datetime(contract.signed_at)} JST")
+    c.drawString(20*mm, 20*mm, "本証明書は、電子契約システム「Minimal e-Contract Service」の監査ログに基づき自動発行されたものです。")
+    c.drawString(20*mm, 15.5*mm, f"証明書発行日時: {format_jst_datetime(contract.signed_at)} JST")
+    c.drawRightString(width - 20*mm, 15.5*mm, "改ざん防止ハッシュチェーン記録済み")
 
     c.save()
     return save_path
