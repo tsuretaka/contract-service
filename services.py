@@ -283,7 +283,13 @@ def execute_signature(session_id, ip_address, user_agent, typed_name):
         cert_path = os.path.join(CERT_DIR, cert_filename)
         cert_temp_path = os.path.join(CERT_DIR, cert_temp_filename)
         
-        generate_certificate(cert_temp_path, contract, session.party, audit, typed_name)
+        issuer = next((p for p in contract.parties if p.role == 'company'), None)
+        sent_audit = db_audit.query(AuditEvent).filter(
+            AuditEvent.contract_id == contract.id,
+            AuditEvent.event_type == 'sent'
+        ).first()
+        
+        generate_certificate(cert_temp_path, contract, session.party, audit, typed_name, issuer=issuer, sent_audit=sent_audit)
         
         if not os.path.exists(cert_temp_path):
             raise IOError("Certificate file creation failed")
@@ -303,7 +309,8 @@ def execute_signature(session_id, ip_address, user_agent, typed_name):
         stamped_temp_filename = f"tmp_{contract.id}_stamped.pdf"
         stamped_temp_path = os.path.join(CERT_DIR, stamped_temp_filename)
         
-        stamp_text = f"【電子署名済】 契約ID: {contract.id} | SHA256: {contract.pdf_sha256} | 署名日時: {format_jst_datetime(contract.signed_at)} JST"
+        issuer_name = (issuer.name if 'issuer' in locals() and issuer else '発行者')
+        stamp_text = f"【電子署名済】 発行: {issuer_name} | 署名: {session.party.name} ({format_jst_datetime(contract.signed_at)} JST) | 契約ID: {contract.id} | SHA256: {contract.pdf_sha256}"
         # Use local_original_pdf here
         stamp_all_pages(local_original_pdf, stamped_temp_path, stamp_text)
         
@@ -485,13 +492,20 @@ def recreate_signed_contract_if_missing(contract_id, local_original_pdf, force=T
         stamped_temp_path = os.path.join(CERT_DIR, f"tmp_{contract.id}_stamped.pdf")
         merged_path = os.path.join(CERT_DIR, f"{contract.id}_signed.pdf")
         
+        issuer = next((p for p in contract.parties if p.role == 'company'), None)
+        sent_audit = db_audit.query(AuditEvent).filter(
+            AuditEvent.contract_id == contract.id,
+            AuditEvent.event_type == 'sent'
+        ).first()
+        
         # 1. Generate cert (force overwrite)
         if force or not os.path.exists(cert_path):
-             generate_certificate(cert_path, contract, signer, audit, typed_name)
+             generate_certificate(cert_path, contract, signer, audit, typed_name, issuer=issuer, sent_audit=sent_audit)
              
         # 2. Stamp and merge (force overwrite)
         if (force or not os.path.exists(merged_path)) and local_original_pdf and os.path.exists(local_original_pdf):
-             stamp_text = f"【電子署名済】 契約ID: {contract.id} | SHA256: {contract.pdf_sha256} | 署名日時: {format_jst_datetime(contract.signed_at)} JST"
+             issuer_name = issuer.name if issuer else "発行者"
+             stamp_text = f"【電子署名済】 発行: {issuer_name} | 署名: {signer.name} ({format_jst_datetime(contract.signed_at)} JST) | 契約ID: {contract.id} | SHA256: {contract.pdf_sha256}"
              stamp_all_pages(local_original_pdf, stamped_temp_path, stamp_text)
              merge_pdf_with_certificate(stamped_temp_path, cert_path, merged_path)
              
