@@ -303,14 +303,6 @@ def show_contract_list():
             elif detail.status == 'signed':
                 st.success("✅ 署名が完了しています。")
                 
-                col_dl1, col_dl2 = st.columns(2)
-                
-                # Dynamic merging logic
-                # Dynamic merging logic
-                merged_path = services.get_signed_contract_path(detail.id)
-                cert_path = services.get_certificate_path(detail.id)
-                
-                # Ensure we have the ORIGINAL file locally (download if needed)
                 from utils import download_file_to_temp
                 try:
                     local_original_path = download_file_to_temp(detail.pdf_path)
@@ -318,22 +310,19 @@ def show_contract_list():
                     local_original_path = None
                     st.error(f"Failed to retrieve original PDF: {e}")
 
-                # Check/Create merged file
-                # Only if we have both original and cert locally
-                if not os.path.exists(merged_path) and local_original_path and os.path.exists(local_original_path):
-                     try:
-                         services.recreate_signed_contract_if_missing(detail.id, local_original_path)
-                         # Update paths after recreation
-                         merged_path = services.get_signed_contract_path(detail.id)
-                         cert_path = services.get_certificate_path(detail.id)
-                     except Exception as e:
-                         st.error(f"Failed to recreate PDF: {e}")
+                # Always ensure JST-formatted files are regenerated
+                if local_original_path and os.path.exists(local_original_path):
+                    services.recreate_signed_contract_if_missing(detail.id, local_original_path, force=True)
 
+                merged_path = services.get_signed_contract_path(detail.id)
+                cert_path = services.get_certificate_path(detail.id)
+
+                col_dl1, col_dl2 = st.columns(2)
                 with col_dl1:
                     if os.path.exists(merged_path):
                         with open(merged_path, "rb") as f:
                             st.download_button(
-                                "📥 契約書+証明書 (統合版)",
+                                "📥 契約書+証明書 (統合版・JST)",
                                 f,
                                 file_name=f"signed_{os.path.basename(detail.pdf_path)}",
                                 mime="application/pdf",
@@ -341,7 +330,6 @@ def show_contract_list():
                                 use_container_width=True
                             )
                     elif local_original_path and os.path.exists(local_original_path):
-                         # Fallback: Original Only
                          with open(local_original_path, "rb") as f:
                             st.download_button(
                                 "📄 契約書PDF (未結合)",
@@ -356,7 +344,7 @@ def show_contract_list():
                     if os.path.exists(cert_path):
                         with open(cert_path, "rb") as f:
                             st.download_button(
-                                "🎖️ 証明書のみ",
+                                "🎖️ 署名証明書のみ (JST)",
                                 f,
                                 file_name=f"certificate_{detail.id}.pdf",
                                 mime="application/pdf",
@@ -566,21 +554,20 @@ def show_signing_view(token):
     if contract.status == 'signed':
         st.success("この契約書は署名済みです。")
         
-        signed_path = services.get_signed_contract_path(contract.id)
-        if not os.path.exists(signed_path) and local_pdf_path and os.path.exists(local_pdf_path):
+        if local_pdf_path and os.path.exists(local_pdf_path):
              try:
-                 services.recreate_signed_contract_if_missing(contract.id, local_pdf_path)
-                 signed_path = services.get_signed_contract_path(contract.id)
+                  services.recreate_signed_contract_if_missing(contract.id, local_pdf_path, force=True)
              except Exception as e:
-                 print(f"Failed to recreate PDF in signer view: {e}")
-                 
+                  print(f"Failed to recreate PDF in signer view: {e}")
+                  
+        signed_path = services.get_signed_contract_path(contract.id)
         col1, col2 = st.columns(2)
         with col1:
              download_path = signed_path if os.path.exists(signed_path) else local_pdf_path
              if os.path.exists(download_path):
                  with open(download_path, "rb") as f:
                     st.download_button(
-                        label="📄 契約書PDF (署名済) をダウンロード",
+                        label="📄 契約書PDF (署名済・JST) をダウンロード",
                         data=f,
                         file_name=f"signed_{os.path.basename(contract.pdf_path).split('/')[-1]}",
                         mime="application/pdf"
@@ -590,7 +577,7 @@ def show_signing_view(token):
             if os.path.exists(cert_path):
                 with open(cert_path, "rb") as f:
                     st.download_button(
-                        label="🎖️ 署名完了証明書をダウンロード",
+                        label="🎖️ 署名完了証明書 (JST) をダウンロード",
                         data=f,
                         file_name=f"certificate.pdf",
                         mime="application/pdf"

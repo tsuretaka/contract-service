@@ -218,16 +218,14 @@ def upload_local_file_to_storage(local_path, remote_folder="signed", use_hash_na
         # Or re-raise? Let's re-raise to be safe.
         raise e
 
-def download_file_to_temp(path_uri):
+def download_file_to_temp(path_uri, force_download=False):
     """
     Download file from URI (local path or supabase://) to a temp local file.
     Returns path to temp file.
     """
     if path_uri.startswith("supabase://"):
         # Format: supabase://bucket/path/to/file
-        # Remove prefix
         core = path_uri.replace("supabase://", "")
-        # Split bucket and path
         parts = core.split("/", 1)
         bucket = parts[0]
         key = parts[1]
@@ -237,18 +235,19 @@ def download_file_to_temp(path_uri):
         local_path = os.path.join("tmp_downloads", local_filename)
         os.makedirs("tmp_downloads", exist_ok=True)
         
-        # Check if valid file exists (size > 100 bytes to avoid error JSON cache)
-        if os.path.exists(local_path) and os.path.getsize(local_path) > 100:
-             return local_path # Cache hit
+        # Check if valid file exists (size > 100 bytes) unless force_download is requested
+        if not force_download and os.path.exists(local_path) and os.path.getsize(local_path) > 100:
+             return local_path
 
         # Download
-        with open(local_path, 'wb+') as f:
-            res = supabase.storage.from_(bucket).download(key)
-            f.write(res)
+        if supabase:
+            with open(local_path, 'wb+') as f:
+                res = supabase.storage.from_(bucket).download(key)
+                f.write(res)
             
         return local_path
     else:
-        return path_uri # It is already a local path
+        return path_uri
 
 
 import secrets

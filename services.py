@@ -430,33 +430,32 @@ def execute_signature(session_id, ip_address, user_agent, typed_name):
     finally:
         db.close()
 
-def get_certificate_path(contract_id):
-    """Return path to the certificate file."""
+def get_certificate_path(contract_id, force_remote=False):
+    """Return path to the certificate file, optionally pulling latest from Supabase."""
     local_path = os.path.join(CERT_DIR, f"{contract_id}_cert.pdf")
     from utils import SUPABASE_BUCKET, download_file_to_temp
-    if not os.path.exists(local_path) and SUPABASE_BUCKET:
+    if (force_remote or not os.path.exists(local_path)) and SUPABASE_BUCKET:
         try:
-             return download_file_to_temp(f"supabase://{SUPABASE_BUCKET}/signed/{contract_id}_cert.pdf")
+             return download_file_to_temp(f"supabase://{SUPABASE_BUCKET}/signed/{contract_id}_cert.pdf", force_download=force_remote)
         except:
              pass
     return local_path
 
-def get_signed_contract_path(contract_id):
-    """Return path to the merged signed contract file."""
+def get_signed_contract_path(contract_id, force_remote=False):
+    """Return path to the merged signed contract file, optionally pulling latest from Supabase."""
     local_path = os.path.join(CERT_DIR, f"{contract_id}_signed.pdf")
     from utils import SUPABASE_BUCKET, download_file_to_temp
-    if not os.path.exists(local_path) and SUPABASE_BUCKET:
+    if (force_remote or not os.path.exists(local_path)) and SUPABASE_BUCKET:
         try:
-             return download_file_to_temp(f"supabase://{SUPABASE_BUCKET}/signed/{contract_id}_signed.pdf")
+             return download_file_to_temp(f"supabase://{SUPABASE_BUCKET}/signed/{contract_id}_signed.pdf", force_download=force_remote)
         except:
              pass
     return local_path
 
-def recreate_signed_contract_if_missing(contract_id, local_original_pdf):
+def recreate_signed_contract_if_missing(contract_id, local_original_pdf, force=True):
     """
-    Fallback method: if a contract was signed under an older version, the merged PDF
-    might be missing (due to hash-based naming). This function recreates the certificate
-    and the stamped signed PDF on the fly based on DB records.
+    Recreate the certificate and the stamped signed PDF in full JST format based on DB records.
+    By default force=True to ensure latest JST formatting & text-fit stamp overlay.
     """
     db = SessionLocal()
     db_audit = SessionAudit()
@@ -486,12 +485,12 @@ def recreate_signed_contract_if_missing(contract_id, local_original_pdf):
         stamped_temp_path = os.path.join(CERT_DIR, f"tmp_{contract.id}_stamped.pdf")
         merged_path = os.path.join(CERT_DIR, f"{contract.id}_signed.pdf")
         
-        # 1. Generate cert
-        if not os.path.exists(cert_path):
+        # 1. Generate cert (force overwrite)
+        if force or not os.path.exists(cert_path):
              generate_certificate(cert_path, contract, signer, audit, typed_name)
              
-        # 2. Stamp and merge
-        if not os.path.exists(merged_path) and local_original_pdf and os.path.exists(local_original_pdf):
+        # 2. Stamp and merge (force overwrite)
+        if (force or not os.path.exists(merged_path)) and local_original_pdf and os.path.exists(local_original_pdf):
              stamp_text = f"【電子署名済】 契約ID: {contract.id} | SHA256: {contract.pdf_sha256} | 署名日時: {format_jst_datetime(contract.signed_at)} JST"
              stamp_all_pages(local_original_pdf, stamped_temp_path, stamp_text)
              merge_pdf_with_certificate(stamped_temp_path, cert_path, merged_path)
@@ -499,7 +498,15 @@ def recreate_signed_contract_if_missing(contract_id, local_original_pdf):
              if os.path.exists(stamped_temp_path):
                   os.remove(stamped_temp_path)
         
-        # We don't upload again, just use local temp caching
+        # 3. Upload to Supabase Storage if active
+        from utils import SUPABASE_BUCKET, upload_local_file_to_storage
+        if SUPABASE_BUCKET:
+            try:
+                upload_local_file_to_storage(cert_path, remote_folder="signed")
+                upload_local_file_to_storage(merged_path, remote_folder="signed")
+            except Exception as e:
+                print(f"Supabase sync warning in recreate: {e}")
+        
         return True
     finally:
         db.close()
