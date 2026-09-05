@@ -449,11 +449,24 @@ def show_signing_view(token):
         mime='application/pdf'
     )
 
-    # PDF Display using streamlit-pdf-viewer (Better cross-browser support including Safari)
-    from streamlit_pdf_viewer import pdf_viewer
-    
-    # annotations (optional) could be added here later
-    pdf_viewer(input=pdf_bytes, width=700)
+    # PDF Display using PyMuPDF (100% Japanese font and cross-browser rendering)
+    try:
+        import fitz
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            # 150 DPI で文字を極めて鮮明に画像化（日本語フォント完全描画）
+            pix = page.get_pixmap(dpi=150)
+            img_bytes = pix.tobytes("png")
+            st.image(
+                img_bytes,
+                caption=f"ページ {page_num + 1} / {len(doc)}" if len(doc) > 1 else None,
+                use_container_width=True
+            )
+    except Exception as e:
+        st.warning(f"PDFプレビューの画像生成でエラーが発生しました: {e}")
+        from streamlit_pdf_viewer import pdf_viewer
+        pdf_viewer(input=pdf_bytes, width=700)
     
     st.divider()
     
