@@ -43,13 +43,25 @@ def get_env_or_secret(key, default=None):
         try:
             import streamlit as st
             if hasattr(st, "secrets"):
+                # Direct check
                 if key in st.secrets:
                     val = st.secrets[key]
-                elif "general" in st.secrets and key in st.secrets["general"]:
-                    val = st.secrets["general"][key]
+                elif key.lower() in st.secrets:
+                    val = st.secrets[key.lower()]
+                else:
+                    # Search nested sections (general, smtp, mail, etc.)
+                    for sec in st.secrets.keys():
+                        sec_val = st.secrets[sec]
+                        if isinstance(sec_val, dict) or hasattr(sec_val, '__getitem__'):
+                            if key in sec_val:
+                                val = sec_val[key]
+                                break
+                            elif key.lower() in sec_val:
+                                val = sec_val[key.lower()]
+                                break
         except:
             pass
-    return val if val else default
+    return val if val is not None and str(val).strip() != "" else default
 
 def send_email_notification(to_email, subject, body, attachment_path=None):
     """Send email via SMTP with optional attachment."""

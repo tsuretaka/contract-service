@@ -284,10 +284,16 @@ def execute_signature(session_id, ip_address, user_agent, typed_name):
         cert_temp_path = os.path.join(CERT_DIR, cert_temp_filename)
         
         issuer = next((p for p in contract.parties if p.role == 'company'), None)
-        sent_audit = db_audit.query(AuditEvent).filter(
-            AuditEvent.contract_id == contract.id,
-            AuditEvent.event_type == 'sent'
-        ).first()
+        db_audit_tmp = SessionAudit()
+        try:
+            sent_audit = db_audit_tmp.query(AuditEvent).filter(
+                AuditEvent.contract_id == contract.id,
+                AuditEvent.event_type == 'sent'
+            ).first()
+        except:
+            sent_audit = None
+        finally:
+            db_audit_tmp.close()
         
         generate_certificate(cert_temp_path, contract, session.party, audit, typed_name, issuer=issuer, sent_audit=sent_audit)
         
