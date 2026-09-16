@@ -1,33 +1,30 @@
-# Streamlit Community Cloud デプロイガイド
+# Streamlit Community Cloud デプロイガイド（既存環境）
 
-## Secrets設定 (TOML形式)
-
-以下の内容をコピーして、Streamlit Cloudの「Secrets」欄に貼り付けてください。
-※ `BASE_URL` は、デプロイ後に発行される実際のアプリのURL（例: `https://contract-service.streamlit.app`）に書き換えることを強く推奨します。
+既存のStreamlit + Supabase本番を保守する場合の設定項目です。実値をリポジトリへコミットせず、Streamlit CloudのSecrets画面で設定してください。
 
 ```toml
 [general]
 
-# --- Database ---
-DATABASE_URL = "postgresql://postgres.mhslyqrqlfbmdmbwwfri:qaqjym-pyXdif-9befne@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres"
-
-# --- Supabase Storage ---
-SUPABASE_URL = "https://mhslyqrqlfbmdmbwwfri.supabase.co"
-SUPABASE_KEY = "sb_publishable_wlPNQLFkj4zkXaV9wee26Q_tSAPxRG4"
+DATABASE_URL = "<SUPABASE_POSTGRES_CONNECTION_STRING>"
+SUPABASE_URL = "<SUPABASE_PROJECT_URL>"
+SUPABASE_KEY = "<SUPABASE_PUBLISHABLE_OR_LEGACY_ANON_KEY>"
 SUPABASE_BUCKET = "contracts"
 
-# --- App Config ---
-# デプロイ後に実際のURL「https://xxxx.streamlit.app」に書き換えてください
-BASE_URL = "https://contract-service.streamlit.app"
+BASE_URL = "https://<STREAMLIT_APP_HOSTNAME>"
 
-# --- Admin Authenticator ---
-ADMIN_USERNAME = "akamine1732"
-ADMIN_PASSWORD = "SecurePass_2026_Go!"
+ADMIN_USERNAME = "<ADMIN_USERNAME>"
+ADMIN_PASSWORD = "<STRONG_UNIQUE_PASSWORD>"
 
-# --- Email Notifications (New) ---
-SMTP_HOST = "smtp.muumuu-mail.com"
+SMTP_HOST = "<SMTP_HOST>"
 SMTP_PORT = 465
-SMTP_USER = "contract-service@colt.co.jp"
-SMTP_PASSWORD = "contract1732"
-NOTIFICATION_EMAIL = "contract-service@colt.co.jp"
+SMTP_USER = "<SMTP_USERNAME>"
+SMTP_PASSWORD = "<SMTP_PASSWORD>"
+NOTIFICATION_EMAIL = "<ADMIN_NOTIFICATION_EMAIL>"
 ```
+
+## セキュリティ注意事項
+
+- 認証情報をGitへ保存しないでください。
+- Supabaseの公開クライアント向けキー以外をブラウザへ露出しないでください。
+- 過去版に実値を保存したことがある場合、ファイル編集だけではGit履歴から消えません。該当する認証情報をローテーションし、必要なら履歴除去を別作業として実施してください。
+- Cloudflare PoCの設定は `cloudflare/README.md` を参照してください。PoCへ既存のSupabaseまたはSMTP認証情報をコピーしないでください。

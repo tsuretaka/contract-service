@@ -1,0 +1,2 @@
+ADMIN_PASSWORD=change-me-for-local-development
+SESSION_SECRET=replace-with-at-least-32-random-bytes
