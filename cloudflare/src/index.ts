@@ -25,7 +25,7 @@ async function getContractBundle(env: Env, id: string) {
 async function tokenBundle(env: Env, token: string, allowUsed = false) {
   const tokenHash = await sha256(token);
   const session = await env.DB.prepare('SELECT * FROM cs_signing_sessions WHERE token_hash = ?').bind(tokenHash).first<SessionRow>();
-  if (!session || (!allowUsed && session.used_at) || session.expires_at <= new Date().toISOString()) return null;
+  if (!session || session.revoked_at || (!allowUsed && session.used_at) || session.expires_at <= new Date().toISOString()) return null;
   const contract = await getContractBundle(env, session.contract_id);
   const signer = contract?.parties.find(p => p.id === session.signer_party_id);
   return contract && signer ? { session, contract, signer } : null;
@@ -85,6 +85,22 @@ async function sendContract(env: Env, id: string) {
   ]);
   if (!result[0].meta.changes) return error('Contract state changed; reload and retry', 409);
   await recordAudit(env, { contractId: id, actorType: 'admin', actorReference: env.ADMIN_USERNAME, eventType: 'sent' });
+  return json({ signingUrl: `${env.APP_ORIGIN.replace(/\/$/, '')}/sign/?token=${encodeURIComponent(rawToken)}`, expiresAt: expires.toISOString(), recipient: signer.email });
+}
+
+async function reissueSigningLink(env: Env, id: string) {
+  const contract = await getContractBundle(env, id);
+  const signer = contract?.parties.find(p => p.role === 'signer');
+  if (!contract || !signer || contract.status !== 'sent') return error('Only a sent contract can receive a replacement signing link', 409);
+  const rawToken = randomToken();
+  const now = new Date();
+  const expires = new Date(now.getTime() + Number(env.SIGNING_VALID_DAYS || 7) * 86400000);
+  await env.DB.batch([
+    env.DB.prepare('UPDATE cs_signing_sessions SET revoked_at=? WHERE contract_id=? AND used_at IS NULL AND revoked_at IS NULL').bind(now.toISOString(), id),
+    env.DB.prepare('INSERT INTO cs_signing_sessions (id,contract_id,signer_party_id,token_hash,expires_at,created_at) VALUES (?,?,?,?,?,?)')
+      .bind(crypto.randomUUID(), id, signer.id, await sha256(rawToken), expires.toISOString(), now.toISOString())
+  ]);
+  await recordAudit(env, { contractId: id, actorType: 'admin', actorReference: env.ADMIN_USERNAME, eventType: 'signing_link_reissued', metadata: { source_system: contract.source_system } });
   return json({ signingUrl: `${env.APP_ORIGIN.replace(/\/$/, '')}/sign/?token=${encodeURIComponent(rawToken)}`, expiresAt: expires.toISOString(), recipient: signer.email });
 }
 
@@ -185,14 +201,20 @@ async function handle(request: Request, env: Env): Promise<Response> {
     return json(contracts);
   }
   if (path === '/api/contracts' && request.method === 'POST') return createContract(request, env);
-  if (path === '/api/audit' && request.method === 'GET') return json((await env.DB.prepare('SELECT * FROM cs_audit_events ORDER BY occurred_at DESC, id DESC LIMIT 200').all()).results);
-  const contractRoute = path.match(/^\/api\/contracts\/([^/]+)(?:\/(send|void|pdf|signed-pdf|certificate))?$/);
+  if (path === '/api/audit' && request.method === 'GET') return json((await env.DB.prepare(`
+    SELECT *, 'cloudflare' source_system FROM cs_audit_events
+    UNION ALL
+    SELECT id,contract_id,actor_type,actor_reference,event_type,occurred_at,ip_address,user_agent,metadata_json,previous_hash,record_hash,source_system FROM cs_legacy_audit_events
+    ORDER BY occurred_at DESC, id DESC LIMIT 500
+  `).all()).results);
+  const contractRoute = path.match(/^\/api\/contracts\/([^/]+)(?:\/(send|reissue|void|pdf|signed-pdf|certificate))?$/);
   if (contractRoute) {
     const id = contractRoute[1], action = contractRoute[2];
     const contract = await getContractBundle(env, id);
     if (!contract) return error('Contract not found', 404);
     if (!action && request.method === 'GET') return json(contract);
     if (action === 'send' && request.method === 'POST') return sendContract(env, id);
+    if (action === 'reissue' && request.method === 'POST') return reissueSigningLink(env, id);
     if (action === 'void' && request.method === 'POST') {
       if (contract.status === 'signed' || contract.status === 'void') return error('Signed or void contracts cannot be voided', 409);
       await env.DB.prepare("UPDATE cs_contracts SET status='void', voided_at=? WHERE id=?").bind(new Date().toISOString(), id).run();

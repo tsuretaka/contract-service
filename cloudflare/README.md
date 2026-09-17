@@ -44,3 +44,11 @@ Do not add production Supabase credentials or real contract data. The committed 
 - Admin sessions are HMAC-signed, `HttpOnly`, `Secure`, `SameSite=Strict`, and expire after 12 hours.
 - Raw signing tokens are returned once and never persisted.
 - This is a functional PoC, not a legal determination about electronic-signature enforceability.
+
+## Legacy data migration
+
+`scripts/migrate_legacy.py` validates an operator-created JSON export before it writes anything. Its default mode downloads every listed public source object, checks the recorded size, and verifies original PDF hashes whose filenames are SHA-256 values. Pass `--apply` only after the dry-run report is clean and a D1 backup exists.
+
+The import is idempotent. Legacy contracts are tagged with `source_system=legacy_supabase`, files are stored below `legacy/contracts/`, and original audit hashes are preserved in `cs_legacy_audit_events`. Unused legacy signing sessions are revoked on import because their previously issued URLs point to the old application; the admin UI can issue replacement links for sent contracts.
+
+Do not commit the export, downloaded contracts, generated SQL, or migration reports. Keep the old service available until row counts, object counts, file hashes, and representative PDF downloads have all been checked on Cloudflare.
