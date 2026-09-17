@@ -11,7 +11,7 @@ This directory is an isolated replacement for the Streamlit + Supabase applicati
 - NFKC signer-name verification and explicit consent
 - Original PDF integrity verification before signing
 - Footer stamp on every page, appended completion certificate, and private downloads
-- Global `previous_hash -> record_hash` audit chain protected from concurrent forks by D1 triggers
+- Global `previous_hash -> record_hash` audit chain protected from concurrent forks by a unique predecessor constraint
 - Draft, sent, signed, and void lifecycle
 
 The PoC intentionally does not migrate or connect to production Supabase. Email delivery is also kept out of the acceptance path: the admin receives a one-time signing URL and can pass it through the existing operational channel. An email provider can be added after the core flow is accepted.

@@ -28,7 +28,7 @@ GitHub branch poc/cloudflare-workers-pages
 | Review/sign | public token-scoped endpoints and Pages signer UI |
 | Signed PDF | every page stamped; completion certificate appended |
 | Integrity | original SHA-256 recomputed immediately before signing |
-| Audit chain | D1 trigger guards one global chain head; retry on conflicts |
+| Audit chain | A unique `previous_hash` prevents forks; concurrent conflicts retry from the new head |
 | GitHub deployment | scoped GitHub Actions workflow |
 | No sleep/wake screen | Pages/Workers request model; no Streamlit process |
 

@@ -44,28 +44,9 @@ CREATE TABLE cs_audit_events (
   ip_address TEXT,
   user_agent TEXT,
   metadata_json TEXT,
-  previous_hash TEXT NOT NULL,
+  previous_hash TEXT NOT NULL UNIQUE,
   record_hash TEXT NOT NULL UNIQUE
 );
-
-CREATE TABLE cs_audit_chain_head (
-  id INTEGER PRIMARY KEY CHECK (id = 1),
-  head_hash TEXT NOT NULL
-);
-INSERT INTO cs_audit_chain_head (id, head_hash) VALUES (1, printf('%064d', 0));
-
-CREATE TRIGGER cs_audit_chain_guard
-BEFORE INSERT ON cs_audit_events
-BEGIN
-  SELECT CASE WHEN NEW.previous_hash != (SELECT head_hash FROM cs_audit_chain_head WHERE id = 1)
-    THEN RAISE(ABORT, 'audit_chain_conflict') END;
-END;
-
-CREATE TRIGGER cs_audit_chain_advance
-AFTER INSERT ON cs_audit_events
-BEGIN
-  UPDATE cs_audit_chain_head SET head_hash = NEW.record_hash WHERE id = 1;
-END;
 
 CREATE INDEX idx_parties_contract ON cs_parties(contract_id);
 CREATE INDEX idx_sessions_contract ON cs_signing_sessions(contract_id);

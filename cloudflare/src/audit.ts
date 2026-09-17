@@ -13,21 +13,21 @@ export async function auditHash(previousHash: string, input: AuditInput, occurre
 
 export async function recordAudit(env: Env, input: AuditInput): Promise<{ id: string; recordHash: string; previousHash: string; occurredAt: string }> {
   for (let attempt = 0; attempt < 4; attempt++) {
-    const head = await env.DB.prepare('SELECT head_hash FROM cs_audit_chain_head WHERE id = 1').first<{ head_hash: string }>();
-    if (!head) throw new Error('Audit chain head is missing');
+    const last = await env.DB.prepare('SELECT record_hash FROM cs_audit_events ORDER BY occurred_at DESC, id DESC LIMIT 1').first<{ record_hash: string }>();
+    const previousHash = last?.record_hash ?? '0'.repeat(64);
     const id = crypto.randomUUID();
     const occurredAt = new Date().toISOString();
-    const recordHash = await auditHash(head.head_hash, input, occurredAt);
+    const recordHash = await auditHash(previousHash, input, occurredAt);
     try {
       await env.DB.prepare(`INSERT INTO cs_audit_events
         (id, contract_id, actor_type, actor_reference, event_type, occurred_at, ip_address, user_agent, metadata_json, previous_hash, record_hash)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
         id, input.contractId, input.actorType, input.actorReference ?? null, input.eventType, occurredAt,
-        input.ip ?? null, input.userAgent ?? null, input.metadata ? stableJson(input.metadata) : null, head.head_hash, recordHash
+        input.ip ?? null, input.userAgent ?? null, input.metadata ? stableJson(input.metadata) : null, previousHash, recordHash
       ).run();
-      return { id, recordHash, previousHash: head.head_hash, occurredAt };
+      return { id, recordHash, previousHash, occurredAt };
     } catch (error) {
-      if (!String(error).includes('audit_chain_conflict') || attempt === 3) throw error;
+      if (!String(error).toLowerCase().includes('unique') || attempt === 3) throw error;
     }
   }
   throw new Error('Could not append audit event');
