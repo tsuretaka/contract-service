@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "wrangler dev --local",
     "deploy:worker": "wrangler deploy",
-    "deploy:pages": "wrangler pages deploy frontend --project-name contract-service-poc",
+    "deploy:pages": "wrangler pages deploy frontend --project-name contract-service-poc-web --branch poc/cloudflare-workers-pages",
     "db:migrate:local": "wrangler d1 migrations apply contract-service-poc --local",
     "db:migrate:remote": "wrangler d1 migrations apply contract-service-poc --remote",
     "typecheck": "tsc --noEmit",
