@@ -1,15 +1,33 @@
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
+import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
 
-const safe = (value: string | null | undefined) => (value ?? 'N/A').normalize('NFKD').replace(/[^\x20-\x7E]/g, '?');
+const safe = (value: string | null | undefined) => (value ?? 'N/A').normalize('NFC').replace(/[\u0000-\u001F\u007F]/g, ' ');
+
+function wrapText(value: string, font: PDFFont, size: number, maxWidth: number): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const character of Array.from(safe(value))) {
+    const candidate = line + character;
+    if (line && font.widthOfTextAtSize(candidate, size) > maxWidth) {
+      lines.push(line);
+      line = character;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line || !lines.length) lines.push(line);
+  return lines;
+}
 
 export interface CertificateData {
   contractId: string; title: string; issuer: string; signer: string; signerEmail: string;
   originalSha256: string; signedAt: string; ipAddress: string; userAgent: string; auditHash: string;
 }
 
-export async function createSignedArtifacts(originalBytes: ArrayBuffer, data: CertificateData): Promise<{ certificate: Uint8Array; signed: Uint8Array }> {
+export async function createSignedArtifacts(originalBytes: ArrayBuffer, japaneseFontBytes: ArrayBuffer, data: CertificateData): Promise<{ certificate: Uint8Array; signed: Uint8Array }> {
   const certificateDoc = await PDFDocument.create();
-  const font = await certificateDoc.embedFont(StandardFonts.Helvetica);
+  certificateDoc.registerFontkit(fontkit);
+  const font = await certificateDoc.embedFont(japaneseFontBytes, { subset: true });
   const bold = await certificateDoc.embedFont(StandardFonts.HelveticaBold);
   const page = certificateDoc.addPage([595.28, 841.89]);
   page.drawRectangle({ x: 35, y: 35, width: 525, height: 772, borderColor: rgb(.7, .75, .82), borderWidth: 1.5 });
@@ -22,9 +40,8 @@ export async function createSignedArtifacts(originalBytes: ArrayBuffer, data: Ce
   let y = 710;
   for (const [label, value] of rows) {
     page.drawText(`${label}:`, { x: 60, y, size: 9, font: bold });
-    const text = safe(value);
-    for (let offset = 0; offset < text.length; offset += 74) {
-      page.drawText(text.slice(offset, offset + 74), { x: 175, y, size: 8.5, font });
+    for (const line of wrapText(value, font, 8.5, 355)) {
+      page.drawText(line, { x: 175, y, size: 8.5, font });
       y -= 13;
     }
     y -= 15;

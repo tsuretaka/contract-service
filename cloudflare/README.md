@@ -30,9 +30,10 @@ Local Wrangler uses local D1 and R2 state under `.wrangler/`; it does not touch 
 1. Create D1 database `contract-service-poc` and R2 bucket `contract-service-poc`.
 2. Put the returned D1 ID in `wrangler.jsonc`.
 3. Set `APP_ORIGIN` to the Pages production URL. Remove the local default admin username if a different name is desired.
-4. Add encrypted Worker secrets with `wrangler secret put ADMIN_PASSWORD` and `wrangler secret put SESSION_SECRET` (32+ random bytes).
-5. Apply migrations, deploy the Worker, replace the Worker hostname in `frontend/_redirects`, and deploy `frontend` as a Pages project.
-6. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as GitHub Actions secrets. The workflow verifies every change and deploys pushes to this PoC branch.
+4. Upload the official static Noto Sans CJK Japanese font to the private R2 key configured by `PDF_FONT_KEY` (currently `system/fonts/NotoSansCJKjp-Regular.otf`). The Worker subsets and embeds it so Japanese contract and signer names remain readable in the certificate.
+5. Add encrypted Worker secrets with `wrangler secret put ADMIN_PASSWORD` and `wrangler secret put SESSION_SECRET` (32+ random bytes).
+6. Apply migrations, deploy the Worker, and deploy `frontend` plus its Pages Function as a Pages project.
+7. Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as GitHub Actions secrets. The workflow verifies every change and deploys pushes to this PoC branch.
 
 Do not add production Supabase credentials or real contract data. The committed historical `DEPLOYMENT.md` contains legacy operational values and must not be reused for the PoC; rotate any value that is still active before production use.
 

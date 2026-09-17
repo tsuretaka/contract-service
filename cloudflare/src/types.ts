@@ -7,6 +7,7 @@ export interface Env {
   SESSION_SECRET: string;
   SIGNING_VALID_DAYS: string;
   MAX_PDF_BYTES: string;
+  PDF_FONT_KEY: string;
 }
 
 export interface ContractRow {

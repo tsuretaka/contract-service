@@ -97,6 +97,9 @@ async function signContract(request: Request, env: Env, token: string) {
   if (!original) return error('Original PDF is missing', 500);
   const originalBytes = await original.arrayBuffer();
   if (await sha256(originalBytes) !== bundle.contract.pdf_sha256) return error('Original PDF integrity check failed', 409);
+  const japaneseFont = await env.CONTRACTS.get(env.PDF_FONT_KEY);
+  if (!japaneseFont) return error('PDF font is missing', 500);
+  const japaneseFontBytes = await japaneseFont.arrayBuffer();
   const signedAt = new Date().toISOString();
   const claim = await env.DB.prepare('UPDATE cs_signing_sessions SET processing_at=? WHERE id=? AND used_at IS NULL AND processing_at IS NULL')
     .bind(signedAt, bundle.session.id).run();
@@ -110,7 +113,7 @@ async function signContract(request: Request, env: Env, token: string) {
       ip: clientIp(request), userAgent: request.headers.get('user-agent'), metadata: { typed_name_verification: input.typedName, match_result: true }
     });
     const issuer = bundle.contract.parties.find(p => p.role === 'company');
-    const artifacts = await createSignedArtifacts(originalBytes, {
+    const artifacts = await createSignedArtifacts(originalBytes, japaneseFontBytes, {
       contractId: bundle.contract.id, title: bundle.contract.title, issuer: issuer?.name ?? 'N/A', signer: bundle.signer.name,
       signerEmail: bundle.signer.email ?? 'N/A', originalSha256: bundle.contract.pdf_sha256, signedAt,
       ipAddress: clientIp(request), userAgent: request.headers.get('user-agent') ?? 'unknown', auditHash: verificationAudit.recordHash
