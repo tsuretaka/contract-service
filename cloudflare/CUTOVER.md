@@ -2,6 +2,8 @@
 
 Last verified: 2026-09-17 (Asia/Tokyo)
 
+Cutover status: complete. The `contract-service` Streamlit Community Cloud app was deleted after the final source-delta check. Its former URL now resolves to Streamlit's not-found page. The GitHub repository and the shared Supabase project were retained.
+
 ## Migration result
 
 - 25 legacy contracts: 3 draft, 8 sent, 13 signed, and 1 void
@@ -36,4 +38,3 @@ One signed test contract (`6dfe9342-4e8e-4d9d-bfde-15cc3b116970`) has no signed 
 5. Switch users/bookmarks to the Cloudflare URL.
 6. Disable only the Streamlit contract application. Do not pause the Supabase project because it also hosts unrelated services.
 7. Keep the Supabase contract tables and bucket read-only as a rollback archive for an agreed retention period. Restrict the public bucket only after confirming no active old signing URLs are required.
-
