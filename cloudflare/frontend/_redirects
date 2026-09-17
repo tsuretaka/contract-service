@@ -1,3 +1,2 @@
-/api/* https://contract-service-poc-api.tsuretaka.workers.dev/api/:splat 200
 /sign/* /sign/index.html 200
 /* /index.html 200
