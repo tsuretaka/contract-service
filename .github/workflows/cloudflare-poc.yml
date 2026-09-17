@@ -1,4 +1,9 @@
 name: Cloudflare PoC
+permissions:
+  contents: read
+concurrency:
+  group: cloudflare-poc-production
+  cancel-in-progress: false
 on:
   push:
     branches: [poc/cloudflare-workers-pages]
@@ -20,6 +25,9 @@ jobs:
     if: github.event_name == 'push'
     needs: verify
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     defaults: { run: { working-directory: cloudflare } }
     steps:
       - uses: actions/checkout@v4
@@ -28,6 +36,4 @@ jobs:
       - run: npm ci
       - run: npm run db:migrate:remote
       - run: npm run deploy:worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - run: npm run deploy:pages
