@@ -9,6 +9,7 @@ __pycache__/
 .env
 .streamlit/secrets.toml
 venv/
+.wrangler/
 
 # Data (Excluded from git primarily, but note that Cloud hosting resets these)
 database/*.db

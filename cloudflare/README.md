@@ -14,7 +14,7 @@ This directory is an isolated replacement for the Streamlit + Supabase applicati
 - Global `previous_hash -> record_hash` audit chain protected from concurrent forks by a unique predecessor constraint
 - Draft, sent, signed, and void lifecycle
 
-The PoC intentionally does not migrate or connect to production Supabase. Email delivery is also kept out of the acceptance path: the admin receives a one-time signing URL and can pass it through the existing operational channel. An email provider can be added after the core flow is accepted.
+The runtime does not connect to production Supabase. A one-time migration path is provided below. Email delivery is kept out of the acceptance path: the admin receives a one-time signing URL and can pass it through the existing operational channel. An email provider can be added after the core flow is accepted.
 
 ## Local verification
 
@@ -52,3 +52,5 @@ Do not add production Supabase credentials or real contract data. The committed 
 The import is idempotent. Legacy contracts are tagged with `source_system=legacy_supabase`, files are stored below `legacy/contracts/`, and original audit hashes are preserved in `cs_legacy_audit_events`. Unused legacy signing sessions are revoked on import because their previously issued URLs point to the old application; the admin UI can issue replacement links for sent contracts.
 
 Do not commit the export, downloaded contracts, generated SQL, or migration reports. Keep the old service available until row counts, object counts, file hashes, and representative PDF downloads have all been checked on Cloudflare.
+
+For the verified migration result, known source anomalies, and the production handover sequence, see [CUTOVER.md](CUTOVER.md).
